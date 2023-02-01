@@ -21,6 +21,13 @@ from flask import Flask, request, session, render_template, redirect, url_for
 from flask import _request_ctx_stack as stack
 from jaeger_client import Tracer, ConstSampler
 from jaeger_client.reporter import NullReporter
+from jaeger_client.reporter import Reporter
+from jaeger_client.local_agent_net import LocalAgentSender
+from jaeger_client.config import (
+    Config,
+    DEFAULT_SAMPLING_PORT,
+    DEFAULT_REPORTING_PORT,
+)
 from jaeger_client.codecs import B3Codec
 from opentracing.ext import tags
 from opentracing.propagation import Format
@@ -56,6 +63,8 @@ app.logger.setLevel(logging.DEBUG)
 app.secret_key = b'_5#y2L"F4Q8z\n\xec]/'
 
 Bootstrap(app)
+
+sendTracesToAgent = False if (os.environ.get("SEND_TRACES_TO_AGENT") is None) else True
 
 servicesDomain = "" if (os.environ.get("SERVICES_DOMAIN") is None) else "." + os.environ.get("SERVICES_DOMAIN")
 detailsHostname = "details" if (os.environ.get("DETAILS_HOSTNAME") is None) else os.environ.get("DETAILS_HOSTNAME")
@@ -118,10 +127,21 @@ request_result_counter = Counter('request_result', 'Results of requests', ['dest
 # extract/inject context, etc.
 
 # A very basic OpenTracing tracer (with null reporter)
+# Or one to send spans to a local agent
+channel = LocalAgentSender(
+            host="localhost",
+            sampling_port=DEFAULT_SAMPLING_PORT,
+            reporting_port=DEFAULT_REPORTING_PORT,
+            throttling_port=DEFAULT_SAMPLING_PORT,
+        )
+
+reporter = Reporter(channel=channel,
+                    flush_interval=1) if (sendTracesToAgent) else NullReporter()
+
 tracer = Tracer(
     one_span_per_rpc=True,
     service_name='productpage',
-    reporter=NullReporter(),
+    reporter=reporter,
     sampler=ConstSampler(decision=True),
     extra_codecs={Format.HTTP_HEADERS: B3Codec()}
 )
@@ -148,6 +168,7 @@ def trace():
                 span = tracer.start_span(
                     operation_name='op', child_of=span_ctx, tags=rpc_tag
                 )
+                span.finish()
             except Exception as e:
                 # We failed to create a context, possibly due to no
                 # incoming x-b3-*** headers. Start a fresh span.
@@ -156,6 +177,7 @@ def trace():
                 span = tracer.start_span('op')
             with span_in_context(span):
                 r = f(*args, **kwargs)
+                span.finish()
                 return r
         wrapper.__name__ = f.__name__
         return wrapper

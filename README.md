@@ -98,3 +98,26 @@ You should see the following in the browser.
 **Note**: If everything works as mentioned above, request a new official set of images be built and pushed from the reviewer, and add another commit to the original PR with the version changes.
 
 Bookinfo is tested by istio.io integration tests. You can find them under [tests](https://github.com/istio/istio.io/tree/master/tests) in the [istio/istio.io](https://github.com/istio/istio.io) repository.
+
+
+## Send traces to an agent
+
+### Product page
+
+Traces are sent to the agent (port UDP:6831) and then to the collector.
+Expecting jaeger agent running in local and collector in the cluster
+
+Download agent from https://www.jaegertracing.io/download/
+
+Run agent:
+```
+./jaeger-agent --reporter.grpc.host-port=localhost:14250 --log-level debug
+```
+
+Note: port-forward from the cluster the jaeger-collector at port 1450 (grpc)
+
+```
+pip3 install -vvv --no-cache-dir -r requirements.txt
+
+SEND_TRACES_TO_AGENT=true python -m productpage 8080
+```
