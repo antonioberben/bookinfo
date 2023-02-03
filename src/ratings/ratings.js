@@ -14,6 +14,8 @@
 
 var http = require('http')
 var dispatcher = require('httpdispatcher')
+var initTracer = require('jaeger-client').initTracer;
+const { Tags, FORMAT_HTTP_HEADERS } = require('opentracing');
 
 var port = parseInt(process.argv[2])
 
@@ -58,7 +60,36 @@ if (process.env.SERVICE_VERSION === 'v2') {
   }
 }
 
+var config = {
+  serviceName: 'userservice',
+  sampler:{
+      type:"const",
+      param: 1
+  },
+  reporter: {
+    logSpans: true
+  }
+};
+var options = {
+  tags: {
+    'ratings': 'x.y.z',
+  },
+};
+var tracer = initTracer(config, options);
+
 dispatcher.onPost(/^\/ratings\/[0-9]*/, function (req, res) {
+  const span = tracer.startSpan('ratings', {
+      childOf: parentSpanContext,
+      tags: {[Tags.SPAN_KIND]: Tags.SPAN_KIND_RPC_SERVER}
+  });
+
+
+  span.log({
+      'event': 'format',
+      'value': 'something'
+  });
+
+  span.finish();
   var productIdStr = req.url.split('/').pop()
   var productId = parseInt(productIdStr)
   var ratings = {}
@@ -87,6 +118,19 @@ dispatcher.onPost(/^\/ratings\/[0-9]*/, function (req, res) {
 })
 
 dispatcher.onGet(/^\/ratings\/[0-9]*/, function (req, res) {
+  const parentSpanContext = tracer.extract(FORMAT_HTTP_HEADERS, req.headers)
+  const span = tracer.startSpan('ratings', {
+    childOf: parentSpanContext,
+    tags: {[Tags.SPAN_KIND]: Tags.SPAN_KIND_RPC_SERVER}
+  });
+
+
+  span.log({
+      'event': 'format',
+      'value': 'something'
+  });
+
+  span.finish();
   var productIdStr = req.url.split('/').pop()
   var productId = parseInt(productIdStr)
 

@@ -21,6 +21,11 @@ ENV SERVICE_VERSION ${service_version:-v1}
 ARG enable_external_book_service
 ENV ENABLE_EXTERNAL_BOOK_SERVICE ${enable_external_book_service:-false}
 
+RUN apt-get update &&\
+    apt-get install --yes build-essential
+
+RUN gem install 'jaeger-client' --version 1.1.0
+
 EXPOSE 9080
 WORKDIR /opt/microservices
 

@@ -17,6 +17,19 @@
 require 'webrick'
 require 'json'
 require 'net/http'
+require 'jaeger/client'
+
+send_traces_to_agent = ENV.has_key?("SEND_TRACES_TO_AGENT")
+
+if send_traces_to_agent then
+    OpenTracing.global_tracer = Jaeger::Client.build(host: 'localhost', port: 6831, service_name: 'details')
+else
+  OpenTracing.global_tracer = Jaeger::Client.build(
+    service_name: 'details',
+    reporter: Jaeger::Reporters::NullReporter.new
+  )
+end
+Jaeger::Samplers::Const.new(true)
 
 if ARGV.length < 1 then
     puts "usage: #{$PROGRAM_NAME} port"
@@ -36,22 +49,24 @@ server.mount_proc '/health' do |req, res|
 end
 
 server.mount_proc '/details' do |req, res|
-    pathParts = req.path.split('/')
-    headers = get_forward_headers(req)
+    OpenTracing.start_active_span("/") do |scope|
+      pathParts = req.path.split('/')
+      headers = get_forward_headers(req)
 
-    begin
-        begin
-          id = Integer(pathParts[-1])
-        rescue
-          raise 'please provide numeric product id'
-        end
-        details = get_book_details(id, headers)
-        res.body = details.to_json
-        res['Content-Type'] = 'application/json'
-    rescue => error
-        res.body = {'error' => error}.to_json
-        res['Content-Type'] = 'application/json'
-        res.status = 400
+      begin
+          begin
+            id = Integer(pathParts[-1])
+          rescue
+            raise 'please provide numeric product id'
+          end
+          details = get_book_details(id, headers)
+          res.body = details.to_json
+          res['Content-Type'] = 'application/json'
+      rescue => error
+          res.body = {'error' => error}.to_json
+          res['Content-Type'] = 'application/json'
+          res.status = 400
+      end
     end
 end
 

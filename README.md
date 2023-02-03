@@ -102,8 +102,6 @@ Bookinfo is tested by istio.io integration tests. You can find them under [tests
 
 ## Send traces to an agent
 
-### Product page
-
 Traces are sent to the agent (port UDP:6831) and then to the collector.
 Expecting jaeger agent running in local and collector in the cluster
 
@@ -116,8 +114,21 @@ Run agent:
 
 Note: port-forward from the cluster the jaeger-collector at port 1450 (grpc)
 
+### Productpage
+
 ```
 pip3 install -vvv --no-cache-dir -r requirements.txt
 
 SEND_TRACES_TO_AGENT=true python -m productpage 8080
 ```
+
+### Details
+
+```
+gem install 'jaeger-client' --version 1.1.0
+
+SEND_TRACES_TO_AGENT=true ruby details.rb  8080
+```
+
+### Ratings
+
