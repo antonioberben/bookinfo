@@ -25,6 +25,7 @@ RUN apt-get update &&\
     apt-get install --yes build-essential
 
 RUN gem install 'jaeger-client' --version 1.1.0
+RUN gem install 'zipkin-tracer' --version 0.47.0
 
 EXPOSE 9080
 WORKDIR /opt/microservices

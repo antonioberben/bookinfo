@@ -20,7 +20,7 @@ from flask_bootstrap import Bootstrap
 from flask import Flask, request, session, render_template, redirect, url_for
 from flask import _request_ctx_stack as stack
 from jaeger_client import Tracer, ConstSampler
-from jaeger_client.reporter import NullReporter
+from jaeger_client.reporter import NullReporter, LoggingReporter, CompositeReporter
 from jaeger_client.reporter import Reporter
 from jaeger_client.local_agent_net import LocalAgentSender
 from jaeger_client.config import (
@@ -68,31 +68,34 @@ sendTracesToAgent = False if (os.environ.get("SEND_TRACES_TO_AGENT") is None) el
 
 servicesDomain = "" if (os.environ.get("SERVICES_DOMAIN") is None) else "." + os.environ.get("SERVICES_DOMAIN")
 detailsHostname = "details" if (os.environ.get("DETAILS_HOSTNAME") is None) else os.environ.get("DETAILS_HOSTNAME")
+detailsPort = "9080" if (os.environ.get("DETAILS_SERVICE_PORT") is None) else os.environ.get("DETAILS_SERVICE_PORT")
 ratingsHostname = "ratings" if (os.environ.get("RATINGS_HOSTNAME") is None) else os.environ.get("RATINGS_HOSTNAME")
+ratingsPort = "9080" if (os.environ.get("RATINGS_SERVICE_PORT") is None) else os.environ.get("RATINGS_SERVICE_PORT")
 reviewsHostname = "reviews" if (os.environ.get("REVIEWS_HOSTNAME") is None) else os.environ.get("REVIEWS_HOSTNAME")
+reviewsPort = "9080" if (os.environ.get("REVIEWS_SERVICE_PORT") is None) else os.environ.get("REVIEWS_SERVICE_PORT")
 
 flood_factor = 0 if (os.environ.get("FLOOD_FACTOR") is None) else int(os.environ.get("FLOOD_FACTOR"))
 
 details = {
-    "name": "http://{0}{1}:9080".format(detailsHostname, servicesDomain),
+    "name": "http://{0}{1}:{2}".format(detailsHostname, servicesDomain, detailsPort),
     "endpoint": "details",
     "children": []
 }
 
 ratings = {
-    "name": "http://{0}{1}:9080".format(ratingsHostname, servicesDomain),
+    "name": "http://{0}{1}:{2}".format(ratingsHostname, servicesDomain, ratingsPort),
     "endpoint": "ratings",
     "children": []
 }
 
 reviews = {
-    "name": "http://{0}{1}:9080".format(reviewsHostname, servicesDomain),
+    "name": "http://{0}{1}:{2}".format(reviewsHostname, servicesDomain, reviewsPort),
     "endpoint": "reviews",
     "children": [ratings]
 }
 
 productpage = {
-    "name": "http://{0}{1}:9080".format(detailsHostname, servicesDomain),
+    "name": "http://{0}{1}:{2}".format(detailsHostname, servicesDomain, detailsPort),
     "endpoint": "details",
     "children": [details, reviews]
 }
@@ -141,7 +144,7 @@ reporter = Reporter(channel=channel,
 tracer = Tracer(
     one_span_per_rpc=True,
     service_name='productpage',
-    reporter=reporter,
+    reporter=CompositeReporter(reporter, LoggingReporter()),
     sampler=ConstSampler(decision=True),
     extra_codecs={Format.HTTP_HEADERS: B3Codec()}
 )
@@ -166,15 +169,14 @@ def trace():
                 # spanid. We do this to propagate the headers verbatim.
                 rpc_tag = {tags.SPAN_KIND: tags.SPAN_KIND_RPC_SERVER}
                 span = tracer.start_span(
-                    operation_name='op', child_of=span_ctx, tags=rpc_tag
+                    operation_name=request.path, child_of=span_ctx, tags=rpc_tag
                 )
-                span.finish()
             except Exception as e:
                 # We failed to create a context, possibly due to no
                 # incoming x-b3-*** headers. Start a fresh span.
                 # Note: This is a fallback only, and will create fresh headers,
                 # not propagate headers.
-                span = tracer.start_span('op')
+                span = tracer.start_span(request.path)
             with span_in_context(span):
                 r = f(*args, **kwargs)
                 span.finish()

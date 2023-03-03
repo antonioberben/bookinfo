@@ -72,9 +72,8 @@ spec:
       serviceAccountName: bookinfo-details
       containers:
       - name: details
-        # image: docker.io/istio/examples-bookinfo-details-v1:1.17.0
-        image: ttl.sh/details-antonio-123:1h
-        imagePullPolicy: IfNotPresent
+        image: gcr.io/solo-test-236622/otel/bookinfo/examples-bookinfo-details-v1:0.9
+        imagePullPolicy: Always
         env:
         - name: SEND_TRACES_TO_AGENT
           value: "true"
@@ -103,6 +102,7 @@ spec:
             protocol: TCP
         args:
           - "--reporter.grpc.host-port=jaeger-collector.observability.svc.cluster.local:14250"
+          - "--log-level=debug"
         resources:
           limits:
             memory: 50M
@@ -157,12 +157,47 @@ spec:
       serviceAccountName: bookinfo-ratings
       containers:
       - name: ratings
-        image: docker.io/istio/examples-bookinfo-ratings-v1:1.17.0
-        imagePullPolicy: IfNotPresent
+        image: gcr.io/solo-test-236622/otel/bookinfo/examples-bookinfo-ratings-v1:0.9
+        imagePullPolicy: Always
         ports:
         - containerPort: 9080
         securityContext:
           runAsUser: 1000
+        env:
+        - name: SEND_TRACES_TO_AGENT
+          value: "true"
+
+
+      - name: jaeger-agent
+        image: jaegertracing/jaeger-agent:1.41.0
+        ports:
+          - containerPort: 5775
+            name: zk-compact-trft
+            protocol: UDP
+          - containerPort: 5778
+            name: config-rest
+            protocol: TCP
+          - containerPort: 6831
+            name: jg-compact-trft
+            protocol: UDP
+          - containerPort: 6832
+            name: jg-binary-trft
+            protocol: UDP
+          - containerPort: 14271
+            name: admin-http
+            protocol: TCP
+        args:
+          - "--reporter.grpc.host-port=jaeger-collector.observability.svc.cluster.local:14250"
+          - "--log-level=debug"
+        resources:
+          limits:
+            memory: 50M
+            cpu: 100m
+          requests:
+            memory: 50M
+            cpu: 100m
+
+
 ---
 ##################################################################################################
 # Reviews service
@@ -210,11 +245,13 @@ spec:
       serviceAccountName: bookinfo-reviews
       containers:
       - name: reviews
-        image: docker.io/istio/examples-bookinfo-reviews-v1:1.17.0
-        imagePullPolicy: IfNotPresent
+        image: gcr.io/solo-test-236622/otel/bookinfo/examples-bookinfo-reviews-v1:0.9
+        imagePullPolicy: Always
         env:
         - name: LOG_DIR
           value: "/tmp/logs"
+        - name: SEND_TRACES_TO_AGENT
+          value: "true"
         ports:
         - containerPort: 9080
         volumeMounts:
@@ -224,6 +261,38 @@ spec:
           mountPath: /opt/ibm/wlp/output
         securityContext:
           runAsUser: 1000
+
+      - name: jaeger-agent
+        image: jaegertracing/jaeger-agent:1.41.0
+        ports:
+          - containerPort: 5775
+            name: zk-compact-trft
+            protocol: UDP
+          - containerPort: 5778
+            name: config-rest
+            protocol: TCP
+          - containerPort: 6831
+            name: jg-compact-trft
+            protocol: UDP
+          - containerPort: 6832
+            name: jg-binary-trft
+            protocol: UDP
+          - containerPort: 14271
+            name: admin-http
+            protocol: TCP
+        args:
+          - "--reporter.grpc.host-port=jaeger-collector.observability.svc.cluster.local:14250"
+          - "--log-level=debug"
+        resources:
+          limits:
+            memory: 50M
+            cpu: 100m
+          requests:
+            memory: 50M
+            cpu: 100m
+
+
+
       volumes:
       - name: wlp-output
         emptyDir: {}
@@ -252,11 +321,13 @@ spec:
       serviceAccountName: bookinfo-reviews
       containers:
       - name: reviews
-        image: docker.io/istio/examples-bookinfo-reviews-v2:1.17.0
-        imagePullPolicy: IfNotPresent
+        image: gcr.io/solo-test-236622/otel/bookinfo/examples-bookinfo-reviews-v2:0.9
+        imagePullPolicy: Always
         env:
         - name: LOG_DIR
           value: "/tmp/logs"
+        - name: SEND_TRACES_TO_AGENT
+          value: "true"
         ports:
         - containerPort: 9080
         volumeMounts:
@@ -266,6 +337,40 @@ spec:
           mountPath: /opt/ibm/wlp/output
         securityContext:
           runAsUser: 1000
+
+
+      - name: jaeger-agent
+        image: jaegertracing/jaeger-agent:1.41.0
+        ports:
+          - containerPort: 5775
+            name: zk-compact-trft
+            protocol: UDP
+          - containerPort: 5778
+            name: config-rest
+            protocol: TCP
+          - containerPort: 6831
+            name: jg-compact-trft
+            protocol: UDP
+          - containerPort: 6832
+            name: jg-binary-trft
+            protocol: UDP
+          - containerPort: 14271
+            name: admin-http
+            protocol: TCP
+        args:
+          - "--reporter.grpc.host-port=jaeger-collector.observability.svc.cluster.local:14250"
+          - "--log-level=debug"
+        resources:
+          limits:
+            memory: 50M
+            cpu: 100m
+          requests:
+            memory: 50M
+            cpu: 100m
+
+
+
+
       volumes:
       - name: wlp-output
         emptyDir: {}
@@ -294,11 +399,13 @@ spec:
       serviceAccountName: bookinfo-reviews
       containers:
       - name: reviews
-        image: docker.io/istio/examples-bookinfo-reviews-v3:1.17.0
-        imagePullPolicy: IfNotPresent
+        image: gcr.io/solo-test-236622/otel/bookinfo/examples-bookinfo-reviews-v3:0.9
+        imagePullPolicy: Always
         env:
         - name: LOG_DIR
           value: "/tmp/logs"
+        - name: SEND_TRACES_TO_AGENT
+          value: "true"
         ports:
         - containerPort: 9080
         volumeMounts:
@@ -308,6 +415,39 @@ spec:
           mountPath: /opt/ibm/wlp/output
         securityContext:
           runAsUser: 1000
+
+
+      - name: jaeger-agent
+        image: jaegertracing/jaeger-agent:1.41.0
+        ports:
+          - containerPort: 5775
+            name: zk-compact-trft
+            protocol: UDP
+          - containerPort: 5778
+            name: config-rest
+            protocol: TCP
+          - containerPort: 6831
+            name: jg-compact-trft
+            protocol: UDP
+          - containerPort: 6832
+            name: jg-binary-trft
+            protocol: UDP
+          - containerPort: 14271
+            name: admin-http
+            protocol: TCP
+        args:
+          - "--reporter.grpc.host-port=jaeger-collector.observability.svc.cluster.local:14250"
+          - "--log-level=debug"
+        resources:
+          limits:
+            memory: 50M
+            cpu: 100m
+          requests:
+            memory: 50M
+            cpu: 100m
+
+
+
       volumes:
       - name: wlp-output
         emptyDir: {}
@@ -325,6 +465,7 @@ metadata:
     app: productpage
     service: productpage
 spec:
+  type: LoadBalancer
   ports:
   - port: 9080
     name: http
@@ -364,8 +505,11 @@ spec:
       serviceAccountName: bookinfo-productpage
       containers:
       - name: productpage
-        image: docker.io/istio/examples-bookinfo-productpage-v1:1.17.0
-        imagePullPolicy: IfNotPresent
+        image: gcr.io/solo-test-236622/otel/bookinfo/examples-bookinfo-productpage-v1:0.9
+        imagePullPolicy: Always
+        env:
+        - name: SEND_TRACES_TO_AGENT
+          value: "true"
         ports:
         - containerPort: 9080
         volumeMounts:
@@ -394,6 +538,7 @@ spec:
             protocol: TCP
         args:
           - "--reporter.grpc.host-port=jaeger-collector.observability.svc.cluster.local:14250"
+          - "--log-level=debug"
         resources:
           limits:
             memory: 50M
@@ -401,9 +546,6 @@ spec:
           requests:
             memory: 50M
             cpu: 100m
-
-
-
       volumes:
       - name: tmp
         emptyDir: {}

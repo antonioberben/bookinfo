@@ -30,17 +30,53 @@ import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
 import java.io.StringReader;
+import java.util.HashMap;
+import io.opentracing.propagation.Format;
+import io.opentracing.propagation.TextMap;
+import io.opentracing.propagation.TextMapAdapter;
+import io.opentracing.tag.Tags;
+import io.opentracing.Span;
+import io.opentracing.SpanContext;
+import io.opentracing.Scope;
+
+import io.jaegertracing.Configuration.SamplerConfiguration;
+import io.jaegertracing.internal.JaegerTracer;
+import io.jaegertracing.internal.propagation.B3TextMapCodec;
+import io.jaegertracing.internal.reporters.RemoteReporter;
+import io.jaegertracing.internal.samplers.ConstSampler;
+import io.jaegertracing.spi.Reporter;
+
 
 @Path("/")
 public class LibertyRestEndpoint extends Application {
+
+    
+
+    SamplerConfiguration samplerConfig = SamplerConfiguration.fromEnv()
+      .withType(ConstSampler.TYPE)
+      .withParam(1);
+
+    Reporter reporter = new RemoteReporter.Builder()
+      .build();
+    B3TextMapCodec b3Codec = new B3TextMapCodec.Builder().build();
+    JaegerTracer tracer =
+        new JaegerTracer.Builder("reviews")
+        .withSampler(new ConstSampler(true))
+        .withReporter(reporter)
+      .registerExtractor(Format.Builtin.HTTP_HEADERS, b3Codec)
+      .registerInjector(Format.Builtin.HTTP_HEADERS, b3Codec)
+      .build();
+
 
     private final static Boolean ratings_enabled = Boolean.valueOf(System.getenv("ENABLE_RATINGS"));
     private final static String star_color = System.getenv("STAR_COLOR") == null ? "black" : System.getenv("STAR_COLOR");
     private final static String services_domain = System.getenv("SERVICES_DOMAIN") == null ? "" : ("." + System.getenv("SERVICES_DOMAIN"));
     private final static String ratings_hostname = System.getenv("RATINGS_HOSTNAME") == null ? "ratings" : System.getenv("RATINGS_HOSTNAME");
-    private final static String ratings_service = String.format("http://%s%s:9080/ratings", ratings_hostname, services_domain);
+    private final static String ratings_port = System.getenv("RATINGS_SERVICE_PORT") == null ? "9080" : System.getenv("RATINGS_SERVICE_PORT");
+    private final static String ratings_service = String.format("http://%s%s:%s/ratings", ratings_hostname, services_domain, ratings_port);
     private final static String pod_hostname = System.getenv("HOSTNAME");
     private final static String clustername = System.getenv("CLUSTER_NAME");
     // HTTP headers to propagate for distributed tracing are documented at
@@ -186,21 +222,35 @@ public class LibertyRestEndpoint extends Application {
       int starsReviewer1 = -1;
       int starsReviewer2 = -1;
 
-      if (ratings_enabled) {
-        JsonObject ratingsResponse = getRatings(Integer.toString(productId), requestHeaders);
-        if (ratingsResponse != null) {
-          if (ratingsResponse.containsKey("ratings")) {
-            JsonObject ratings = ratingsResponse.getJsonObject("ratings");
-            if (ratings.containsKey("Reviewer1")){
-          	  starsReviewer1 = ratings.getInt("Reviewer1");
-            }
-            if (ratings.containsKey("Reviewer2")){
-              starsReviewer2 = ratings.getInt("Reviewer2");
+      MultivaluedMap<String, String> rawHeaders = requestHeaders.getRequestHeaders();
+      final HashMap<String, String> headers = new HashMap<String, String>();
+      for (String key : rawHeaders.keySet()) {
+          headers.put(key, rawHeaders.get(key).get(0));
+      }
+      TextMap httpHeadersCarrier = new TextMapAdapter(headers);
+      SpanContext spanCtx = tracer.extract(Format.Builtin.HTTP_HEADERS, httpHeadersCarrier);
+      Span span = tracer.buildSpan("getReviews").asChildOf(spanCtx).start();
+      try (Scope scope = tracer.scopeManager().activate(span)) {
+        if (ratings_enabled) {
+          JsonObject ratingsResponse = getRatings(Integer.toString(productId), requestHeaders);
+          if (ratingsResponse != null) {
+            if (ratingsResponse.containsKey("ratings")) {
+              JsonObject ratings = ratingsResponse.getJsonObject("ratings");
+              if (ratings.containsKey("Reviewer1")){
+                starsReviewer1 = ratings.getInt("Reviewer1");
+              }
+              if (ratings.containsKey("Reviewer2")){
+                starsReviewer2 = ratings.getInt("Reviewer2");
+              }
             }
           }
         }
+      } catch(Exception ex) {
+          Tags.ERROR.set(span, true);
+          span.log("error");
+      } finally {
+          span.finish();
       }
-
       String jsonResStr = getJsonResponse(Integer.toString(productId), starsReviewer1, starsReviewer2);
       return Response.ok().type(MediaType.APPLICATION_JSON).entity(jsonResStr).build();
     }

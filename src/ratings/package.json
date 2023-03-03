@@ -4,9 +4,10 @@
   },
   "dependencies": {
     "httpdispatcher": "1.0.0",
+    "jaeger-client": "^3.19.0",
     "mongodb": "^3.6.0",
     "mysql": "^2.15.0",
-    "jaeger-client": "^3.19.0"
+    "opentracing": "^0.14.7"
   },
   "private": true
 }

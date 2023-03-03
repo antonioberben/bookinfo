@@ -18,11 +18,19 @@ require 'webrick'
 require 'json'
 require 'net/http'
 require 'jaeger/client'
+require 'zipkin-tracer'
+
 
 send_traces_to_agent = ENV.has_key?("SEND_TRACES_TO_AGENT")
 
 if send_traces_to_agent then
-    OpenTracing.global_tracer = Jaeger::Client.build(host: 'localhost', port: 6831, service_name: 'details')
+  extractors = {
+    OpenTracing::FORMAT_TEXT_MAP => [Jaeger::Extractors::B3TextMapCodec]
+  }
+    OpenTracing.global_tracer = Jaeger::Client.build(
+      host: 'localhost', port: 6831, service_name: 'details', 
+            extractors: Jaeger::Extractors.prepare(extractors)
+    )
 else
   OpenTracing.global_tracer = Jaeger::Client.build(
     service_name: 'details',
@@ -38,7 +46,7 @@ end
 
 port = Integer(ARGV[0])
 
-server = WEBrick::HTTPServer.new :BindAddress => '*', :Port => port
+server = WEBrick::HTTPServer.new :BindAddress => '0.0.0.0', :Port => port
 
 trap 'INT' do server.shutdown end
 
@@ -49,25 +57,25 @@ server.mount_proc '/health' do |req, res|
 end
 
 server.mount_proc '/details' do |req, res|
-    OpenTracing.start_active_span("/") do |scope|
-      pathParts = req.path.split('/')
-      headers = get_forward_headers(req)
-
-      begin
-          begin
-            id = Integer(pathParts[-1])
-          rescue
-            raise 'please provide numeric product id'
-          end
-          details = get_book_details(id, headers)
-          res.body = details.to_json
-          res['Content-Type'] = 'application/json'
-      rescue => error
-          res.body = {'error' => error}.to_json
-          res['Content-Type'] = 'application/json'
-          res.status = 400
-      end
+    pathParts = req.path.split('/')
+    headers = get_forward_headers(req)
+    extracted_ctx = OpenTracing.extract(OpenTracing::FORMAT_TEXT_MAP, headers)
+    span = OpenTracing.start_span('details', child_of: extracted_ctx)
+    begin
+        begin
+          id = Integer(pathParts[-1])
+        rescue
+          raise 'please provide numeric product id'
+        end
+        details = get_book_details(id, headers)
+        res.body = details.to_json
+        res['Content-Type'] = 'application/json'
+    rescue => error
+        res.body = {'error' => error}.to_json
+        res['Content-Type'] = 'application/json'
+        res.status = 400
     end
+    span.finish
 end
 
 # TODO: provide details on different books.

@@ -14,7 +14,7 @@
 
 var http = require('http')
 var dispatcher = require('httpdispatcher')
-var initTracer = require('jaeger-client').initTracer;
+const { initTracer, ZipkinB3TextMapCodec } = require('jaeger-client');
 const { Tags, FORMAT_HTTP_HEADERS } = require('opentracing');
 
 var port = parseInt(process.argv[2])
@@ -61,7 +61,7 @@ if (process.env.SERVICE_VERSION === 'v2') {
 }
 
 var config = {
-  serviceName: 'userservice',
+  serviceName: 'ratings',
   sampler:{
       type:"const",
       param: 1
@@ -76,6 +76,9 @@ var options = {
   },
 };
 var tracer = initTracer(config, options);
+let codec = new ZipkinB3TextMapCodec({ urlEncoding: true });
+tracer.registerInjector(FORMAT_HTTP_HEADERS, codec);
+tracer.registerExtractor(FORMAT_HTTP_HEADERS, codec);
 
 dispatcher.onPost(/^\/ratings\/[0-9]*/, function (req, res) {
   const span = tracer.startSpan('ratings', {
@@ -84,12 +87,10 @@ dispatcher.onPost(/^\/ratings\/[0-9]*/, function (req, res) {
   });
 
 
-  span.log({
-      'event': 'format',
-      'value': 'something'
-  });
-
-  span.finish();
+  // span.log({
+  //     'event': 'format',
+  //     'value': 'something'
+  // });
   var productIdStr = req.url.split('/').pop()
   var productId = parseInt(productIdStr)
   var ratings = {}
@@ -115,6 +116,7 @@ dispatcher.onPost(/^\/ratings\/[0-9]*/, function (req, res) {
     res.writeHead(200, {'Content-type': 'application/json'})
     res.end(JSON.stringify(putLocalReviews(productId, ratings)))
   }
+  span.finish();
 })
 
 dispatcher.onGet(/^\/ratings\/[0-9]*/, function (req, res) {
@@ -125,12 +127,12 @@ dispatcher.onGet(/^\/ratings\/[0-9]*/, function (req, res) {
   });
 
 
-  span.log({
-      'event': 'format',
-      'value': 'something'
-  });
+  // span.log({
+  //     'event': 'format',
+  //     'value': 'something'
+  // });
 
-  span.finish();
+  
   var productIdStr = req.url.split('/').pop()
   var productId = parseInt(productIdStr)
 
@@ -250,6 +252,7 @@ dispatcher.onGet(/^\/ratings\/[0-9]*/, function (req, res) {
         getLocalReviewsSuccessful(res, productId)
       }
   }
+  span.finish();
 })
 
 dispatcher.onGet('/health', function (req, res) {
