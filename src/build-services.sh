@@ -54,36 +54,36 @@ else
   DOCKER_BUILD_ARGS="docker build"	
 fi
 
-pushd "$SCRIPTDIR/productpage"
-  ${DOCKER_BUILD_ARGS} --pull -t "${PREFIX}/examples-bookinfo-productpage-v1:${VERSION}" -t "${PREFIX}/examples-bookinfo-productpage-v1:latest" .
-  # flooding
-  ${DOCKER_BUILD_ARGS} --pull -t "${PREFIX}/examples-bookinfo-productpage-v-flooding:${VERSION}" -t "${PREFIX}/examples-bookinfo-productpage-v-flooding:latest" --build-arg flood_factor=100 .
-popd
+# pushd "$SCRIPTDIR/productpage"
+#   ${DOCKER_BUILD_ARGS} --pull -t "${PREFIX}/examples-bookinfo-productpage-v1:${VERSION}" -t "${PREFIX}/examples-bookinfo-productpage-v1:latest" .
+#   # flooding
+#   ${DOCKER_BUILD_ARGS} --pull -t "${PREFIX}/examples-bookinfo-productpage-v-flooding:${VERSION}" -t "${PREFIX}/examples-bookinfo-productpage-v-flooding:latest" --build-arg flood_factor=100 .
+# popd
 
-pushd "$SCRIPTDIR/details"
-  # plain build -- no calling external book service to fetch topics
-  ${DOCKER_BUILD_ARGS} --pull -t "${PREFIX}/examples-bookinfo-details-v1:${VERSION}" -t "${PREFIX}/examples-bookinfo-details-v1:latest" --build-arg service_version=v1 .
-  # with calling external book service to fetch topic for the book
-  ${DOCKER_BUILD_ARGS} --pull -t "${PREFIX}/examples-bookinfo-details-v2:${VERSION}" -t "${PREFIX}/examples-bookinfo-details-v2:latest" --build-arg service_version=v2 \
-	 --build-arg enable_external_book_service=true .
-popd
+# pushd "$SCRIPTDIR/details"
+#   # plain build -- no calling external book service to fetch topics
+#   ${DOCKER_BUILD_ARGS} --pull -t "${PREFIX}/examples-bookinfo-details-v1:${VERSION}" -t "${PREFIX}/examples-bookinfo-details-v1:latest" --build-arg service_version=v1 .
+#   # with calling external book service to fetch topic for the book
+#   ${DOCKER_BUILD_ARGS} --pull -t "${PREFIX}/examples-bookinfo-details-v2:${VERSION}" -t "${PREFIX}/examples-bookinfo-details-v2:latest" --build-arg service_version=v2 \
+# 	 --build-arg enable_external_book_service=true .
+# popd
 
 
-pushd "$SCRIPTDIR/reviews"
-  # java build the app.
-  docker run --rm -u root -v "$(pwd)":/home/gradle/project -w /home/gradle/project gradle:4.8.1 gradle clean build
+# pushd "$SCRIPTDIR/reviews"
+#   # java build the app.
+#   docker run --rm -u root -v "$(pwd)":/home/gradle/project -w /home/gradle/project gradle:4.8.1 gradle clean build
   
-  pushd reviews-wlpcfg
-    # plain build -- no ratings
-    ${DOCKER_BUILD_ARGS} --pull -t "${PREFIX}/examples-bookinfo-reviews-v1:${VERSION}" -t "${PREFIX}/examples-bookinfo-reviews-v1:latest" --build-arg service_version=v1 . 
-    # with ratings black stars
-    ${DOCKER_BUILD_ARGS} --pull -t "${PREFIX}/examples-bookinfo-reviews-v2:${VERSION}" -t "${PREFIX}/examples-bookinfo-reviews-v2:latest" --build-arg service_version=v2 \
-	   --build-arg enable_ratings=true .
-    # with ratings red stars
-    ${DOCKER_BUILD_ARGS} --pull -t "${PREFIX}/examples-bookinfo-reviews-v3:${VERSION}" -t "${PREFIX}/examples-bookinfo-reviews-v3:latest" --build-arg service_version=v3 \
-	   --build-arg enable_ratings=true --build-arg star_color=red .
-  popd
-popd
+#   pushd reviews-wlpcfg
+#     # plain build -- no ratings
+#     ${DOCKER_BUILD_ARGS} --pull -t "${PREFIX}/examples-bookinfo-reviews-v1:${VERSION}" -t "${PREFIX}/examples-bookinfo-reviews-v1:latest" --build-arg service_version=v1 . 
+#     # with ratings black stars
+#     ${DOCKER_BUILD_ARGS} --pull -t "${PREFIX}/examples-bookinfo-reviews-v2:${VERSION}" -t "${PREFIX}/examples-bookinfo-reviews-v2:latest" --build-arg service_version=v2 \
+# 	   --build-arg enable_ratings=true .
+#     # with ratings red stars
+#     ${DOCKER_BUILD_ARGS} --pull -t "${PREFIX}/examples-bookinfo-reviews-v3:${VERSION}" -t "${PREFIX}/examples-bookinfo-reviews-v3:latest" --build-arg service_version=v3 \
+# 	   --build-arg enable_ratings=true --build-arg star_color=red .
+#   popd
+# popd
 
 pushd "$SCRIPTDIR/ratings"
   ${DOCKER_BUILD_ARGS} --pull -t "${PREFIX}/examples-bookinfo-ratings-v1:${VERSION}" -t "${PREFIX}/examples-bookinfo-ratings-v1:latest" --build-arg service_version=v1 .
@@ -94,10 +94,10 @@ pushd "$SCRIPTDIR/ratings"
   ${DOCKER_BUILD_ARGS} --pull -t "${PREFIX}/examples-bookinfo-ratings-v-unhealthy:${VERSION}" -t "${PREFIX}/examples-bookinfo-ratings-v-unhealthy:latest" --build-arg service_version=v-unhealthy .
 popd
 
-pushd "$SCRIPTDIR/mysql"
-  ${DOCKER_BUILD_ARGS} --pull -t "${PREFIX}/examples-bookinfo-mysqldb:${VERSION}" -t "${PREFIX}/examples-bookinfo-mysqldb:latest" .
-popd
+# pushd "$SCRIPTDIR/mysql"
+#   ${DOCKER_BUILD_ARGS} --pull -t "${PREFIX}/examples-bookinfo-mysqldb:${VERSION}" -t "${PREFIX}/examples-bookinfo-mysqldb:latest" .
+# popd
 
-pushd "$SCRIPTDIR/mongodb"
-  ${DOCKER_BUILD_ARGS} --pull -t "${PREFIX}/examples-bookinfo-mongodb:${VERSION}" -t "${PREFIX}/examples-bookinfo-mongodb:latest" .
-popd
+# pushd "$SCRIPTDIR/mongodb"
+#   ${DOCKER_BUILD_ARGS} --pull -t "${PREFIX}/examples-bookinfo-mongodb:${VERSION}" -t "${PREFIX}/examples-bookinfo-mongodb:latest" .
+# popd

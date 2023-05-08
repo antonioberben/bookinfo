@@ -28,6 +28,8 @@
 
     <executor coreThreads="5"/>
 
+    <variable name="ENABLE_RATINGS" value="true" />
+
     <webApplication contextRoot="/" id="reviews-app" location="reviews-application-1.0.war" name="reviews-app"/>
 
 </server>

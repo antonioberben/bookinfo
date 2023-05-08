@@ -16,4 +16,6 @@ dependencies {
     providedCompile 'javax.enterprise.concurrent:javax.enterprise.concurrent-api:1.0'
     providedCompile 'javax.enterprise:cdi-api:1.2'
     providedCompile 'io.swagger:swagger-annotations:1.5.0'
+    compile 'io.jaegertracing:jaeger-client:1.8.1'
+    // providedCompile 'io.opentracing:opentracing-api:0.33.0'
 }

@@ -126,6 +126,10 @@ dispatcher.onGet(/^\/ratings\/[0-9]*/, function (req, res) {
     tags: {[Tags.SPAN_KIND]: Tags.SPAN_KIND_RPC_SERVER}
   });
 
+  // BEGIN:: New Feature
+  myNewFeature()
+  // END:: New Feature
+
 
   // span.log({
   //     'event': 'format',
@@ -296,12 +300,25 @@ function getLocalReviews (productId) {
   }
 }
 
+function myNewFeature() {
+  console.log("Me new feature")
+  // This will randomly create an error
+  var random_boolean = Math.random() < 0.5;
+  if (random_boolean) {
+    throw new Error("Boom! You got me");
+  }
+  console.log("Continue with other things")
+}
+
 function handleRequest (request, response) {
   try {
     console.log(request.method + ' ' + request.url)
     dispatcher.dispatch(request, response)
   } catch (err) {
     console.log(err)
+    response.writeHead(500);
+    response.end(JSON.stringify({error: 'please provide numeric product ID'}));
+    return
   }
 }
 

@@ -256,6 +256,7 @@ def getForwardHeaders(request):
         'cookie',
         'authorization',
         'jwt',
+        'x-test'
     ]
     # For Zipkin, always propagate b3 headers.
     # For Lightstep, always propagate the x-ot-span-context header.

@@ -134,6 +134,7 @@ public class LibertyRestEndpoint extends Application {
         "cookie",
         "authorization",
         "jwt",
+        "x-test"
     };
 
     private String getJsonResponse(String productId, int starsReviewer1, int starsReviewer2) {

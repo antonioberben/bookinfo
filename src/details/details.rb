@@ -205,7 +205,8 @@ def get_forward_headers(request)
       # Context and session specific headers
       'cookie',
       'authorization',
-      'jwt'
+      'jwt',
+      'x-test'
   ]
 
   request.each do |header, value|
